@@ -35,5 +35,5 @@ for cell in ws2[1]:
     cell.font=Font(bold=True)
 for row in rows:
     ws2.append(list(row))
-print( f"Merged {len(files)} files. Total rows:{len(rows)}.")
 wb2.save("master_report.xlsx")
+print(f"Merged {len(files)} files. Total rows: {len(rows)}.")

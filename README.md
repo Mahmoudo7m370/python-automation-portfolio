@@ -31,15 +31,6 @@ Practice script for os and glob — navigating folders and finding files.
 
 ### day1.py
 First Python script — variables, loops, and functions practice.
-
-## How to Run
-
-1. Install the required library:
-pip install openpyxl
-
-2. Run any script:
-python cleaner.py
-python merger.py
 ### sales_report_generator.py
 Takes a folder of messy raw CSV sales files and outputs a clean professional Excel report.
 
@@ -49,6 +40,15 @@ Takes a folder of messy raw CSV sales files and outputs a clean professional Exc
 - Highlights the top salesperson row in green
 - Outputs final_report.xlsx with bold headers and frozen top row
 - Never modifies the original CSV files
+
+## How to Run
+
+1. Install the required library:
+pip install openpyxl
+
+2. Run any script:
+python cleaner.py
+python merger.py
 
 ## Requirements
 - Python 3.x

@@ -40,6 +40,15 @@ pip install openpyxl
 2. Run any script:
 python cleaner.py
 python merger.py
+### sales_report_generator.py
+Takes a folder of messy raw CSV sales files and outputs a clean professional Excel report.
+
+- Reads all CSV files in the folder automatically
+- Cleans data — removes duplicates, fixes casing, strips spaces, fills empty cells
+- Calculates total sales, average sale, and highest sale per salesperson
+- Highlights the top salesperson row in green
+- Outputs final_report.xlsx with bold headers and frozen top row
+- Never modifies the original CSV files
 
 ## Requirements
 - Python 3.x

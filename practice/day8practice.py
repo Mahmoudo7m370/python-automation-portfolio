@@ -1,0 +1,10 @@
+import pandas as pd
+df=pd.read_csv("sales_q1.csv")
+print(df.head(3))
+print(df.info())
+print(df["Amount"].sum())
+print(df["Amount"].mean())
+print(df["Amount"].max())
+print(df[df["Amount"]>400])
+df["Salesperson"]=df["Salesperson"].str.strip().str.title()
+print(df[df["Salesperson"]=="Ahmed"])

@@ -1,5 +1,5 @@
 from openpyxl import load_workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Font,PatternFill
 import pandas as pd
 import glob
 # Read all of the CSV files
@@ -44,4 +44,9 @@ wb=load_workbook("pandas_report.xlsx")
 ws=wb.active
 for cell in ws[1]:
     cell.font=Font(bold=True)
+
+#Hilighting the top person with green 
+green=PatternFill(start_color="90EE90",end_color="90EE90",fill_type="solid")
+for cell in ws[2]:
+    cell.fill=green
 wb.save("pandas_report.xlsx")

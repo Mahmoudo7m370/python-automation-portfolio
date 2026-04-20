@@ -1,9 +1,13 @@
 from openpyxl import load_workbook
 from openpyxl.styles import Font
 import pandas as pd
-
-# Read the CSV file
-df = pd.read_csv("sales_q1.csv")
+import glob
+# Read all of the CSV files
+all_files=glob.glob("*.csv")
+if not all_files:
+    print("No CSV files found!")
+    exit()
+df=pd.concat((pd.read_csv(f) for f in all_files),ignore_index=True)
 
 # Clean the data
 df = df.drop_duplicates()
@@ -13,16 +17,21 @@ for col in df.columns:
     except:
         pass
 
+# Ensure Amount is numeric
+df["Amount"]=pd.to_numeric(df["Amount"],errors="coerce")
+
 # Drop rows with no Amount
 df = df.dropna(subset=["Amount"])
 
 # Calculate summary per salesperson
-summary = df.groupby("Salesperson")["Amount"].agg(["sum", "mean", "max"])
-summary.columns = ["Total", "Average", "Highest"]
+summary = df.groupby("Salesperson")["Amount"].agg(Total="sum", Average="mean", Highest="max").reset_index()
 summary["Average"] = summary["Average"].round()
+
+#Sort data of total
+summary=summary.sort_values("Total",ascending=False)
+
 # Find top salesperson
-top = summary["Total"].idxmax()
-summary=summary.reset_index()
+top = summary.iloc[0]["Salesperson"]
 print(f"Top salesperson: {top}")
 print(summary)
 

@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Font,PatternFill
 import time
 
 # Scrape all 50 pages and collect book titles and prices
@@ -29,6 +29,7 @@ average = round(df["Price"].mean(), 2)
 
 # Sort books by price and save to Excel
 df = df.sort_values("Price")
+df["Price"] = df["Price"].apply(lambda x: f"£{x:.2f}")
 df.to_excel("price_report.xlsx", index=False)
 
 # Style the main sheet — bold headers
@@ -36,7 +37,14 @@ wb = load_workbook("price_report.xlsx")
 ws = wb.active
 for cell in ws[1]:
     cell.font = Font(bold=True)
-
+    cell.fill = PatternFill(start_color="1D9E75", end_color="1D9E75", fill_type="solid")
+    cell.font = Font(bold=True, color="FFFFFF")
+    
+# Auto width
+for col in ws.columns:
+    max_len = max(len(str(cell.value or "")) for cell in col)
+    ws.column_dimensions[col[0].column_letter].width = max_len + 4
+    
 # Add summary sheet with key statistics
 ws2 = wb.create_sheet("Summary")
 ws2.append(["Metric", "Value"])

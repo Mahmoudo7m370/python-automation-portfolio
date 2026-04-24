@@ -101,4 +101,4 @@ python merger.py
 ## Progress
 - Week 1 complete — Excel automation with openpyxl
 - Week 2 complete — pandas data analysis and web scraping
-- Week 3 coming — Flask web tools.
+- Week 3 coming — Flask web tools

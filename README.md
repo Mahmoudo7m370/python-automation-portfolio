@@ -52,6 +52,12 @@ Merges multiple Excel files from a folder into one master report.
 - Dynamically detects column positions — works with any column order
 - Sorts all rows by Amount (highest first)
 - Outputs master_report.xlsx with bold headers
+### fiverr_readiness_test.py
+Blind test — given an unseen messy Excel file, cleaned and analyzed it in under 2 hours with no help.
+- Merged and deduplicated data automatically
+- Cleaned all text columns, handled number columns separately
+- Generated groupby sales summary sorted by total
+- Output professional Excel report with bold headers and green top row
 
 ## Practice Scripts
 

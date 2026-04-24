@@ -3,6 +3,12 @@
 Python scripts for automating Excel, CSV, and web data tasks — cleaning, merging, analyzing, and reporting.
 Built as part of a structured learning plan to offer automation services on Fiverr.
 
+
+## Before & After
+![Before](screenshots/before.png)
+![After](screenshots/after.png)
+
+
 ## Portfolio Scripts
 
 ### sales_report_generator.py

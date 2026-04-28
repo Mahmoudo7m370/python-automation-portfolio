@@ -10,12 +10,12 @@ if not all_files:
 df=pd.concat((pd.read_csv(f) for f in all_files),ignore_index=True)
 
 # Clean the data
-df = df.drop_duplicates()
 for col in df.columns:
     try:
         df[col] = df[col].str.strip().str.title()
     except:
         pass
+df = df.drop_duplicates()
 
 # Ensure Amount is numeric
 df["Amount"]=pd.to_numeric(df["Amount"],errors="coerce")

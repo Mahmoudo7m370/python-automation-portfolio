@@ -1,6 +1,6 @@
 # Python Automation Portfolio
 
-Python scripts for automating Excel, CSV, and web data tasks — cleaning, merging, analyzing, and reporting.
+Python scripts and web tools for automating Excel, CSV, and web data tasks — cleaning, merging, analyzing, and reporting.
 
 Drop a messy spreadsheet in. Get a clean, professional report out.
 
@@ -19,7 +19,32 @@ Every script here solves a real business problem: messy data comes in, clean res
 
 ---
 
-## Scripts
+## Tools & Scripts
+
+### `data_cleaner_app.py` — Data Cleaner Pro (Live Web App)
+
+A full web application that cleans messy CSV and Excel files through a browser — no Python knowledge required.
+
+**How to use:**
+1. Upload one or multiple CSV or Excel files using the upload button
+2. Choose your mode — Clean Only or Clean + Summary Report
+3. Optionally sort the data by any column
+4. In Summary mode, pick the numeric column to analyze — totals, averages, and highest values are calculated automatically
+5. Optionally highlight any row with a custom color
+6. Click Download to get your clean, formatted Excel file
+
+**What it does:**
+- Removes duplicate rows automatically
+- Fixes text casing and strips extra spaces across all columns
+- Fills empty numeric cells with 0 and empty text cells with N/A
+- Generates a Summary sheet with groupby analysis when requested
+- Applies bold headers to all sheets
+- Highlights any row in any color the user chooses
+- Outputs a multi-sheet formatted Excel file ready to deliver to clients
+
+Built with Streamlit — runs in any browser, no Python knowledge needed.
+
+---
 
 ### `sales_report_generator.py` — Multi-File Sales Report
 
@@ -110,7 +135,12 @@ This script exists to demonstrate real delivery speed and quality under pressure
 
 **Install dependencies:**
 ```bash
-pip install openpyxl pandas requests beautifulsoup4
+pip install openpyxl pandas requests beautifulsoup4 streamlit
+```
+
+**Run the web app:**
+```bash
+python -m streamlit run data_cleaner_app.py
 ```
 
 **Run any script from its folder:**
@@ -131,6 +161,7 @@ python merger.py
 - pandas
 - requests
 - beautifulsoup4
+- streamlit
 
 ---
 

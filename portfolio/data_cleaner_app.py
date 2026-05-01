@@ -2,7 +2,7 @@ import io
 import streamlit as st
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import Font
+from openpyxl.styles import Font, PatternFill
 
 # ── Page Header ───────────────────────────────────────────────
 st.title("Data Cleaner Pro")
@@ -74,20 +74,15 @@ if uploaded_files:
     # ── Summary Report Mode ────────────────────────────────────
     if selected_mode == "Clean + Summary Report":
 
-        # User picks which numeric column to summarize
         amount_column = st.selectbox(
             "Choose the numeric column to summarize",
             combined_df.select_dtypes(include="number").columns,
             key="summary_col"
         )
 
-        # Convert chosen column to numeric safely
         combined_df[amount_column] = pd.to_numeric(combined_df[amount_column], errors="coerce")
-
-        # Automatically detect the first text column to group by
         groupby_column = combined_df.select_dtypes(exclude="number").columns[0]
 
-        # Build summary table
         summary_df = combined_df.groupby(groupby_column)[amount_column].agg(
             Total="sum",
             Average="mean",
@@ -95,7 +90,6 @@ if uploaded_files:
         ).reset_index()
         summary_df["Average"] = summary_df["Average"].round()
 
-        # Optional: Sort the summary
         sort_summary = st.selectbox(
             "Do you want to sort the summary?",
             ["no", "yes"],
@@ -120,6 +114,17 @@ if uploaded_files:
         st.subheader("Summary Report")
         st.dataframe(summary_df)
 
+    # ── Row Highlight Section ──────────────────────────────────
+    st.subheader("Highlight a Row")
+    highlight_row = st.number_input(
+        "Enter row number to highlight (1 = first data row)",
+        min_value=1,
+        max_value=len(combined_df),
+        step=1,
+        key="highlight_row"
+    )
+    highlight_color = st.color_picker("Choose highlight color", "#FFFF00", key="highlight_color")
+
     # ── Write to Excel in Memory ───────────────────────────────
     excel_buffer = io.BytesIO()
     with pd.ExcelWriter(excel_buffer) as writer:
@@ -127,16 +132,24 @@ if uploaded_files:
         if summary_df is not None:
             summary_df.to_excel(writer, sheet_name="Summary", index=False)
 
-    # ── Apply Bold Headers with openpyxl ───────────────────────
+    # ── Apply Formatting with openpyxl ────────────────────────
     excel_buffer.seek(0)
     workbook = load_workbook(excel_buffer)
+    cleaned_sheet = workbook["Cleaned Data"]
 
-    for cell in workbook["Cleaned Data"][1]:
+    # Bold headers
+    for cell in cleaned_sheet[1]:
         cell.font = Font(bold=True)
 
     if summary_df is not None:
         for cell in workbook["Summary"][1]:
             cell.font = Font(bold=True)
+
+    # Highlight selected row (+1 because row 1 is the header)
+    hex_color = highlight_color[1:]
+    fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
+    for cell in cleaned_sheet[int(highlight_row) + 1]:
+        cell.fill = fill
 
     # ── Save Final Workbook to Memory ──────────────────────────
     final_output = io.BytesIO()
@@ -150,5 +163,3 @@ if uploaded_files:
 
 else:
     st.write("Please upload a file to get started.")
-    
-

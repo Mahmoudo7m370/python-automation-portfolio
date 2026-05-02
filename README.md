@@ -6,10 +6,24 @@ Drop a messy spreadsheet in. Get a clean, professional report out.
 
 ---
 
+## 🚀 Live Demo
+
+**Try the app instantly — no installation needed:**
+
+👉 [mahmoud-data-cleaner.streamlit.app](https://mahmoud-data-cleaner.streamlit.app)
+
+---
+
 ## Before & After
 
 ![Before](screenshots/before.png)
 ![After](screenshots/after.png)
+
+---
+
+## App Screenshot
+
+![App Screenshot](screenshots/app_screenshot.png)
 
 ---
 
@@ -24,6 +38,8 @@ Every script here solves a real business problem: messy data comes in, clean res
 ### `data_cleaner_app.py` — Data Cleaner Pro (Live Web App)
 
 A full web application that cleans messy CSV and Excel files through a browser — no Python knowledge required.
+
+**🔗 Live demo: [mahmoud-data-cleaner.streamlit.app](https://mahmoud-data-cleaner.streamlit.app)**
 
 **How to use:**
 1. Upload one or multiple CSV or Excel files using the upload button
@@ -138,10 +154,13 @@ This script exists to demonstrate real delivery speed and quality under pressure
 pip install openpyxl pandas requests beautifulsoup4 streamlit
 ```
 
-**Run the web app:**
+**Run the web app locally:**
 ```bash
-python -m streamlit run data_cleaner_app.py
+python -m streamlit run portfolio/data_cleaner_app.py
 ```
+
+**Or use the live version — no installation needed:**
+👉 [mahmoud-data-cleaner.streamlit.app](https://mahmoud-data-cleaner.streamlit.app)
 
 **Run any script from its folder:**
 ```bash
@@ -170,3 +189,5 @@ python merger.py
 I automate Excel and data workflows using Python — cleaning messy files, merging reports, and delivering professional output fast. Every script is documented, non-destructive, and built to handle real-world data, not just clean demos.
 
 **Available for work on Fiverr → [fiverr.com/pymahmoud](https://www.fiverr.com/pymahmoud)**
+
+**Live demo → [mahmoud-data-cleaner.streamlit.app](https://mahmoud-data-cleaner.streamlit.app)**

@@ -8,10 +8,11 @@ from openpyxl.styles import Font, PatternFill
 st.title("Data Cleaner Pro")
 st.write("Upload your messy CSV or Excel files and get a clean, formatted Excel report.")
 
-# ── User Selects Mode ──────────────────────────────────────────
-selected_mode = st.selectbox("Choose mode", ["Clean Only", "Clean + Summary Report"])
+# ── Sidebar: App Settings ──────────────────────────────────────
+st.sidebar.header("Settings")
+selected_mode = st.sidebar.selectbox("Choose mode", ["Clean Only", "Clean + Summary Report"])
 
-# ── File Upload ────────────────────────────────────────────────
+# ── Main Area: File Upload ─────────────────────────────────────
 uploaded_files = st.file_uploader(
     "Upload CSV or Excel files",
     type=["csv", "xlsx"],
@@ -20,145 +21,178 @@ uploaded_files = st.file_uploader(
 
 if uploaded_files:
 
-    # ── Read and Combine All Uploaded Files ────────────────────
-    dataframes = []
-    for uploaded_file in uploaded_files:
-        try:
-            dataframes.append(pd.read_csv(uploaded_file))
-        except Exception:
-            dataframes.append(pd.read_excel(uploaded_file))
+    # ── Step 1: Read and Combine All Uploaded Files ────────────
+    enable_highlight = False
+    progress_bar = st.progress(0)
+    with st.spinner("Cleaning your data..."):
 
-    combined_df = pd.concat(dataframes, ignore_index=True)
+        combined_frames = []
+        for uploaded_file in uploaded_files:
+            try:
+                combined_frames.append(pd.read_csv(uploaded_file))
+            except Exception:
+                try:
+                    combined_frames.append(pd.read_excel(uploaded_file))
+                except Exception:
+                    st.error(f"Could not read file: {uploaded_file.name}")
+                    st.stop()
 
-    # ── Track Original Row Count and Empty Cells ───────────────
-    original_row_count = len(combined_df)
-    empty_cell_count = combined_df.isnull().sum().sum()
+        cleaned_df = pd.concat(combined_frames, ignore_index=True)
+        progress_bar.progress(33)
 
-    # ── Clean Text Columns ─────────────────────────────────────
-    for column in combined_df.columns:
-        try:
-            combined_df[column] = combined_df[column].str.strip().str.title()
-        except Exception:
-            pass
+        # ── Step 2: Track Stats Before Cleaning ───────────────
+        row_count_before = len(cleaned_df)
+        empty_cell_count = cleaned_df.isnull().sum().sum()
 
-    # ── Remove Duplicate Rows ──────────────────────────────────
-    combined_df = combined_df.drop_duplicates()
+        # ── Step 3: Clean Text Columns ────────────────────────
+        for col in cleaned_df.columns:
+            try:
+                cleaned_df[col] = cleaned_df[col].str.strip().str.title()
+            except Exception:
+                pass
 
-    # ── Fill Empty Cells ───────────────────────────────────────
-    numeric_columns = combined_df.select_dtypes(include="number").columns
-    combined_df[numeric_columns] = combined_df[numeric_columns].fillna(0)
-    combined_df = combined_df.fillna("N/A")
+        # ── Step 4: Remove Duplicate Rows ─────────────────────
+        cleaned_df = cleaned_df.drop_duplicates()
+        if len(cleaned_df) == 0:
+            st.error("No data remaining after cleaning. The file may be empty or all rows were duplicates.")
+            st.stop()
 
-    # ── Optional: Sort the Data ────────────────────────────────
-    sort_data = st.selectbox(
-        "Do you want to sort the data?",
-        ["no", "yes"],
-        key="main_sort_choice"
-    )
-    if sort_data == "yes":
-        sort_column = st.selectbox("Choose column to sort", combined_df.columns, key="main_sort_column")
-        sort_direction = st.selectbox("Order", ["ascending", "descending"], key="main_sort_direction")
-        combined_df = combined_df.sort_values(
-            sort_column,
-            ascending=(sort_direction == "ascending")
+        # ── Step 5: Validate Mode Requirements ────────────────
+        has_numeric_columns = len(cleaned_df.select_dtypes(include="number").columns) > 0
+        if not has_numeric_columns and selected_mode == "Clean + Summary Report":
+            st.error("No numeric columns found. Summary mode requires at least one numeric column.")
+            st.stop()
+
+        # ── Step 6: Fill Empty Cells ───────────────────────────
+        numeric_columns = cleaned_df.select_dtypes(include="number").columns
+        cleaned_df[numeric_columns] = cleaned_df[numeric_columns].fillna(0)
+        cleaned_df = cleaned_df.fillna("N/A")
+
+        # ── Step 7: Optional Sorting ───────────────────────────
+        sort_column = st.sidebar.selectbox(
+            "Sort by column",
+            ["None"] + list(cleaned_df.columns),
+            key="main_sort_column"
         )
+        if sort_column != "None":
+            sort_order = st.sidebar.selectbox(
+                "Sort order",
+                ["ascending", "descending"],
+                key="main_sort_direction"
+            )
+            cleaned_df = cleaned_df.sort_values(
+                sort_column,
+                ascending=(sort_order == "ascending")
+            )
+        progress_bar.progress(66)
 
-    # ── Display Cleaned Data ───────────────────────────────────
-    st.subheader("Cleaned Data")
-    st.dataframe(combined_df)
+        # ── Step 8: Display Cleaned Data ──────────────────────
+        st.subheader("Cleaned Data")
+        st.dataframe(cleaned_df)
 
-    # ── Calculate Duplicates Removed ──────────────────────────
-    duplicates_removed = original_row_count - len(combined_df)
-    summary_df = None
+        duplicates_removed = row_count_before - len(cleaned_df)
+        summary_df = None
 
-    # ── Summary Report Mode ────────────────────────────────────
-    if selected_mode == "Clean + Summary Report":
+        # ── Step 9: Summary Report Mode ───────────────────────
+        if selected_mode == "Clean + Summary Report":
 
-        amount_column = st.selectbox(
-            "Choose the numeric column to summarize",
-            combined_df.select_dtypes(include="number").columns,
-            key="summary_col"
-        )
+            # User selects which numeric column to summarize
+            amount_column = st.sidebar.selectbox(
+                "Column to summarize",
+                cleaned_df.select_dtypes(include="number").columns,
+                key="summary_col"
+            )
+            cleaned_df[amount_column] = pd.to_numeric(cleaned_df[amount_column], errors="coerce")
 
-        combined_df[amount_column] = pd.to_numeric(combined_df[amount_column], errors="coerce")
-        groupby_column = combined_df.select_dtypes(exclude="number").columns[0]
+            # Auto-detect first text column as groupby key
+            groupby_column = cleaned_df.select_dtypes(exclude="number").columns[0]
 
-        summary_df = combined_df.groupby(groupby_column)[amount_column].agg(
-            Total="sum",
-            Average="mean",
-            Highest="max"
-        ).reset_index()
-        summary_df["Average"] = summary_df["Average"].round()
+            # Build summary table
+            summary_df = cleaned_df.groupby(groupby_column)[amount_column].agg(
+                Total="sum",
+                Average="mean",
+                Highest="max"
+            ).reset_index()
+            summary_df["Average"] = summary_df["Average"].round()
 
-        sort_summary = st.selectbox(
-            "Do you want to sort the summary?",
-            ["no", "yes"],
-            key="summary_sort_choice"
-        )
-        if sort_summary == "yes":
-            summary_sort_column = st.selectbox(
-                "Choose column to sort by",
-                ["Total", "Average", "Highest"],
+            # Optional: sort the summary
+            summary_sort_column = st.sidebar.selectbox(
+                "Sort summary by",
+                ["None", "Total", "Average", "Highest"],
                 key="summary_sort_column"
             )
-            summary_sort_direction = st.selectbox(
-                "Order",
-                ["ascending", "descending"],
-                key="summary_sort_direction"
+            if summary_sort_column != "None":
+                summary_sort_order = st.sidebar.selectbox(
+                    "Summary sort order",
+                    ["ascending", "descending"],
+                    key="summary_sort_direction"
+                )
+                summary_df = summary_df.sort_values(
+                    summary_sort_column,
+                    ascending=(summary_sort_order == "ascending")
+                )
+
+            st.subheader("Summary Report")
+            st.dataframe(summary_df)
+
+        # ── Step 10: Optional Row Highlight ───────────────────
+        enable_highlight = st.sidebar.checkbox("Highlight a row")
+        if enable_highlight:
+            highlight_row_number = st.sidebar.number_input(
+                "Row number to highlight (1 = first data row)",
+                min_value=1,
+                max_value=len(cleaned_df),
+                step=1,
+                key="highlight_row"
             )
-            summary_df = summary_df.sort_values(
-                summary_sort_column,
-                ascending=(summary_sort_direction == "ascending")
+            highlight_hex_color = st.sidebar.color_picker(
+                "Highlight color",
+                "#FFFF00",
+                key="highlight_color"
             )
 
-        st.subheader("Summary Report")
-        st.dataframe(summary_df)
+        # ── Step 11: Write to Excel in Memory ─────────────────
+        excel_buffer = io.BytesIO()
+        with pd.ExcelWriter(excel_buffer) as excel_writer:
+            cleaned_df.to_excel(excel_writer, sheet_name="Cleaned Data", index=False)
+            if summary_df is not None:
+                summary_df.to_excel(excel_writer, sheet_name="Summary", index=False)
 
-    # ── Row Highlight Section ──────────────────────────────────
-    st.subheader("Highlight a Row")
-    highlight_row = st.number_input(
-        "Enter row number to highlight (1 = first data row)",
-        min_value=1,
-        max_value=len(combined_df),
-        step=1,
-        key="highlight_row"
-    )
-    highlight_color = st.color_picker("Choose highlight color", "#FFFF00", key="highlight_color")
+        # ── Step 12: Apply Formatting with openpyxl ───────────
+        excel_buffer.seek(0)
+        workbook = load_workbook(excel_buffer)
+        cleaned_sheet = workbook["Cleaned Data"]
 
-    # ── Write to Excel in Memory ───────────────────────────────
-    excel_buffer = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer) as writer:
-        combined_df.to_excel(writer, sheet_name="Cleaned Data", index=False)
-        if summary_df is not None:
-            summary_df.to_excel(writer, sheet_name="Summary", index=False)
-
-    # ── Apply Formatting with openpyxl ────────────────────────
-    excel_buffer.seek(0)
-    workbook = load_workbook(excel_buffer)
-    cleaned_sheet = workbook["Cleaned Data"]
-
-    # Bold headers
-    for cell in cleaned_sheet[1]:
-        cell.font = Font(bold=True)
-
-    if summary_df is not None:
-        for cell in workbook["Summary"][1]:
+        # Bold headers on Cleaned Data sheet
+        for cell in cleaned_sheet[1]:
             cell.font = Font(bold=True)
 
-    # Highlight selected row (+1 because row 1 is the header)
-    hex_color = highlight_color[1:]
-    fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
-    for cell in cleaned_sheet[int(highlight_row) + 1]:
-        cell.fill = fill
+        # Bold headers on Summary sheet
+        if summary_df is not None:
+            for cell in workbook["Summary"][1]:
+                cell.font = Font(bold=True)
 
-    # ── Save Final Workbook to Memory ──────────────────────────
-    final_output = io.BytesIO()
-    workbook.save(final_output)
-    final_output.seek(0)
+        # Apply row highlight if enabled
+        if enable_highlight:
+            row_fill_color = highlight_hex_color[1:]
+            row_fill = PatternFill(
+                start_color=row_fill_color,
+                end_color=row_fill_color,
+                fill_type="solid"
+            )
+            for cell in cleaned_sheet[int(highlight_row_number) + 1]:
+                cell.fill = row_fill
 
-    # ── Show Stats and Download Button ─────────────────────────
+        # ── Step 13: Save Final Workbook to Memory ────────────
+        final_output = io.BytesIO()
+        workbook.save(final_output)
+        progress_bar.progress(100)
+        final_output.seek(0)
+
+    # ── Show Stats, Success Message, and Download Button ──────
     st.metric("Duplicates Removed", duplicates_removed)
     st.metric("Empty Cells Filled", empty_cell_count)
+    st.success("Your file is ready to download!")
     st.download_button("Download Cleaned Excel", final_output.getvalue(), "cleaned.xlsx")
 
 else:

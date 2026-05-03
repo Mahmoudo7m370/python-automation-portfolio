@@ -47,7 +47,7 @@ scraped_df = None
 
 if scraping_method == "Auto — detect tables":
     try:
-        all_tables = pd.read_html(target_url,storage_options={"User-Agent": "Mozilla/5.0"})
+        all_tables = pd.read_html(io.StringIO(page_response.text))
         st.success(f"Found {len(all_tables)} table(s) on this page.")
 
         if len(all_tables) > 1:

@@ -6,11 +6,15 @@ Drop a messy spreadsheet in. Get a clean, professional report out.
 
 ---
 
-## 🚀 Live Demo
+## 🚀 Live Demos
 
-**Try the app instantly — no installation needed:**
+**Try the apps instantly — no installation needed:**
 
-👉 [mahmoud-data-cleaner.streamlit.app](https://mahmoud-data-cleaner.streamlit.app)
+👉 [Data Cleaner Pro](https://mahmoud-data-cleaner.streamlit.app) — Upload messy CSV/Excel → get a clean formatted report
+
+👉 [Web Scraper Pro](https://mahmoud-web-scraper.streamlit.app) — Enter a URL → scrape data → download as Excel
+
+👉 [Multi-Page Scraper Pro](https://mahmoud-multi-scraper.streamlit.app) — Scrape multiple pages automatically → download as Excel
 
 ---
 
@@ -59,6 +63,53 @@ A full web application that cleans messy CSV and Excel files through a browser �
 - Outputs a multi-sheet formatted Excel file ready to deliver to clients
 
 Built with Streamlit — runs in any browser, no Python knowledge needed.
+
+---
+
+### `scraper_app.py` — Web Scraper Pro (Live Web App)
+
+A full web application that scrapes any website and delivers the data as a clean Excel report.
+
+**🔗 Live demo: [mahmoud-web-scraper.streamlit.app](https://mahmoud-web-scraper.streamlit.app)**
+
+**How to use:**
+1. Enter any website URL in the sidebar
+2. Choose Auto mode to detect tables automatically, or Manual mode to enter an HTML tag and CSS class
+3. Optionally sort the data and generate a summary report
+4. Click Download to get your scraped data as a formatted Excel file
+
+**What it does:**
+- Auto-detects HTML tables on any page
+- Manual mode: scrape any element by tag and CSS class
+- Cleans and formats all scraped data automatically
+- Optional summary report with totals, averages, and highest values
+- Applies bold headers and optional row highlighting
+- Outputs a formatted Excel file ready to use
+
+Built with Streamlit, requests, and BeautifulSoup.
+
+---
+
+### `multi_scraper_app.py` — Multi-Page Scraper Pro (Live Web App)
+
+A full web application that scrapes multiple pages automatically using a URL pattern.
+
+**🔗 Live demo: [mahmoud-multi-scraper.streamlit.app](https://mahmoud-multi-scraper.streamlit.app)**
+
+**How to use:**
+1. Enter a URL pattern using `{page}` where the page number goes (e.g. `https://example.com/page-{page}.html`)
+2. Set the number of pages to scrape
+3. Choose Auto or Manual scraping mode
+4. Click Download to get all scraped data combined into one Excel file
+
+**What it does:**
+- Loops through multiple pages automatically
+- Combines all pages into one clean dataset
+- Auto-detects tables or scrapes by tag and CSS class
+- Optional summary report and row highlighting
+- Outputs a formatted multi-sheet Excel file
+
+Built with Streamlit, requests, and BeautifulSoup.
 
 ---
 
@@ -154,13 +205,20 @@ This script exists to demonstrate real delivery speed and quality under pressure
 pip install openpyxl pandas requests beautifulsoup4 streamlit
 ```
 
-**Run the web app locally:**
+**Run the web apps locally:**
 ```bash
 python -m streamlit run portfolio/data_cleaner_app.py
+python -m streamlit run portfolio/scraper_app.py
+python -m streamlit run portfolio/multi_scraper_app.py
 ```
 
-**Or use the live version — no installation needed:**
+**Or use the live versions — no installation needed:**
+
 👉 [mahmoud-data-cleaner.streamlit.app](https://mahmoud-data-cleaner.streamlit.app)
+
+👉 [mahmoud-web-scraper.streamlit.app](https://mahmoud-web-scraper.streamlit.app)
+
+👉 [mahmoud-multi-scraper.streamlit.app](https://mahmoud-multi-scraper.streamlit.app)
 
 **Run any script from its folder:**
 ```bash
@@ -190,4 +248,7 @@ I automate Excel and data workflows using Python — cleaning messy files, mergi
 
 **Available for work on Fiverr → [fiverr.com/pymahmoud](https://www.fiverr.com/pymahmoud)**
 
-**Live demo → [mahmoud-data-cleaner.streamlit.app](https://mahmoud-data-cleaner.streamlit.app)**
+**Live demos:**
+- [mahmoud-data-cleaner.streamlit.app](https://mahmoud-data-cleaner.streamlit.app)
+- [mahmoud-web-scraper.streamlit.app](https://mahmoud-web-scraper.streamlit.app)
+- [mahmoud-multi-scraper.streamlit.app](https://mahmoud-multi-scraper.streamlit.app)

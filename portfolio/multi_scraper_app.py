@@ -60,7 +60,7 @@ selected_table_index = 0
 
 if scraping_method == "Auto — detect tables":
     try:
-        first_page_tables = pd.read_html(first_page_url)
+        first_page_tables = pd.read_html(first_page_url,storage_options={"User-Agent": "Mozilla/5.0"})
         if len(first_page_tables) > 1:
             selected_table_index = st.sidebar.selectbox(
                 f"Found {len(first_page_tables)} tables — which one?",
@@ -95,7 +95,7 @@ for page_number in range(1, total_pages + 1):
 
     if scraping_method == "Auto — detect tables":
         try:
-            page_tables = pd.read_html(current_url)
+            page_tables = pd.read_html(current_url,storage_options={"User-Agent": "Mozilla/5.0"})
             all_page_dataframes.append(page_tables[selected_table_index])
         except Exception:
             st.warning(f"No tables found on page {page_number} — skipping.")

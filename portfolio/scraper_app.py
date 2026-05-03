@@ -32,7 +32,8 @@ if not target_url:
 
 # ── Fetch the Page ────────────────────────────────────────────
 try:
-    page_response = requests.get(target_url, timeout=10)
+    headers = {"User-Agent": "Mozilla/5.0"}
+    page_response = requests.get(target_url, timeout=10,headers=headers)
 except Exception:
     st.error("Could not reach this URL. Check the address and try again.")
     st.stop()

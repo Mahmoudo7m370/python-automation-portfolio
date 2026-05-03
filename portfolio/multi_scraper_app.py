@@ -45,7 +45,8 @@ if not url_template:
 first_page_url = url_template.replace("{page}", "1")
 
 try:
-    first_page_response = requests.get(first_page_url, timeout=10)
+    headers = {"User-Agent": "Mozilla/5.0"}
+    first_page_response = requests.get(first_page_url, timeout=10,headers=headers)
 except Exception:
     st.error("Could not reach this URL. Check the address and try again.")
     st.stop()
@@ -102,7 +103,7 @@ for page_number in range(1, total_pages + 1):
 
     elif scraping_method == "Manual — enter tag and class":
         try:
-            page_response = requests.get(current_url, timeout=10)
+            page_response = requests.get(current_url, timeout=10,headers=headers)
             page_soup = BeautifulSoup(page_response.text, "html.parser")
             matched_elements = page_soup.find_all(html_tag, class_=css_class)
 

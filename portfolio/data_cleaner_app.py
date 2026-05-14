@@ -21,11 +21,12 @@ uploaded_files = st.file_uploader(
 
 if uploaded_files:
 
-    # ── Step 1: Read and Combine All Uploaded Files ────────────
     enable_highlight = False
     progress_bar = st.progress(0)
+
     with st.spinner("Cleaning your data..."):
 
+        # ── Step 1: Read and Combine All Uploaded Files ────────
         combined_frames = []
         for uploaded_file in uploaded_files:
             try:
@@ -38,11 +39,11 @@ if uploaded_files:
                     st.stop()
 
         cleaned_df = pd.concat(combined_frames, ignore_index=True)
-        progress_bar.progress(33)
+        progress_bar.progress(20)
 
         # ── Step 2: Track Stats Before Cleaning ───────────────
         row_count_before = len(cleaned_df)
-        empty_cell_count = cleaned_df.isnull().sum().sum()
+        empty_cell_count = int(cleaned_df.isnull().sum().sum())
 
         # ── Step 3: Clean Text Columns ────────────────────────
         for col in cleaned_df.columns:
@@ -54,12 +55,12 @@ if uploaded_files:
         # ── Step 4: Remove Duplicate Rows ─────────────────────
         cleaned_df = cleaned_df.drop_duplicates()
         if len(cleaned_df) == 0:
-            st.error("No data remaining after cleaning. The file may be empty or all rows were duplicates.")
+            st.error("No data remaining after cleaning.")
             st.stop()
 
         # ── Step 5: Validate Mode Requirements ────────────────
-        has_numeric_columns = len(cleaned_df.select_dtypes(include="number").columns) > 0
-        if not has_numeric_columns and selected_mode == "Clean + Summary Report":
+        has_numeric = len(cleaned_df.select_dtypes(include="number").columns) > 0
+        if selected_mode == "Clean + Summary Report" and not has_numeric:
             st.error("No numeric columns found. Summary mode requires at least one numeric column.")
             st.stop()
 
@@ -67,6 +68,8 @@ if uploaded_files:
         numeric_columns = cleaned_df.select_dtypes(include="number").columns
         cleaned_df[numeric_columns] = cleaned_df[numeric_columns].fillna(0)
         cleaned_df = cleaned_df.fillna("N/A")
+
+        progress_bar.progress(40)
 
         # ── Step 7: Optional Sorting ───────────────────────────
         sort_column = st.sidebar.selectbox(
@@ -77,14 +80,18 @@ if uploaded_files:
         if sort_column != "None":
             sort_order = st.sidebar.selectbox(
                 "Sort order",
-                ["ascending", "descending"],
+                ["Ascending", "Descending"],
                 key="main_sort_direction"
             )
-            cleaned_df = cleaned_df.sort_values(
-                sort_column,
-                ascending=(sort_order == "ascending")
-            )
-        progress_bar.progress(66)
+            try:
+                cleaned_df = cleaned_df.sort_values(
+                    sort_column,
+                    ascending=(sort_order == "Ascending")
+                )
+            except Exception:
+                st.warning("Could not sort — mixed data types in that column.")
+
+        progress_bar.progress(60)
 
         # ── Step 8: Display Cleaned Data ──────────────────────
         st.subheader("Cleaned Data")
@@ -96,50 +103,76 @@ if uploaded_files:
         # ── Step 9: Summary Report Mode ───────────────────────
         if selected_mode == "Clean + Summary Report":
 
-            # User selects which numeric column to summarize
-            amount_column = st.sidebar.selectbox(
-                "Column to summarize",
-                cleaned_df.select_dtypes(include="number").columns,
-                key="summary_col"
-            )
-            cleaned_df[amount_column] = pd.to_numeric(cleaned_df[amount_column], errors="coerce")
+            num_cols = list(cleaned_df.select_dtypes(include="number").columns)
+            cat_cols = list(cleaned_df.select_dtypes(exclude="number").columns)
 
-            # Auto-detect first text column as groupby key
-            groupby_column = cleaned_df.select_dtypes(exclude="number").columns[0]
-
-            # Build summary table
-            summary_df = cleaned_df.groupby(groupby_column)[amount_column].agg(
-                Total="sum",
-                Average="mean",
-                Highest="max"
-            ).reset_index()
-            summary_df["Average"] = summary_df["Average"].round()
-
-            # Optional: sort the summary
-            summary_sort_column = st.sidebar.selectbox(
-                "Sort summary by",
-                ["None", "Total", "Average", "Highest"],
-                key="summary_sort_column"
-            )
-            if summary_sort_column != "None":
-                summary_sort_order = st.sidebar.selectbox(
-                    "Summary sort order",
-                    ["ascending", "descending"],
-                    key="summary_sort_direction"
+            if not num_cols or not cat_cols:
+                st.warning("Not enough columns for a summary report.")
+            else:
+                # Let user choose both columns
+                groupby_column = st.sidebar.selectbox(
+                    "Group by (category column)",
+                    cat_cols,
+                    key="groupby_col"
                 )
-                summary_df = summary_df.sort_values(
-                    summary_sort_column,
-                    ascending=(summary_sort_order == "ascending")
+                amount_column = st.sidebar.selectbox(
+                    "Analyze (numeric column)",
+                    num_cols,
+                    key="summary_col"
                 )
 
-            st.subheader("Summary Report")
-            st.dataframe(summary_df)
+                cleaned_df[amount_column] = pd.to_numeric(
+                    cleaned_df[amount_column], errors="coerce"
+                )
+
+                # Build summary
+                summary_df = cleaned_df.groupby(groupby_column)[amount_column].agg(
+                    Total="sum",
+                    Average="mean",
+                    Highest="max"
+                ).reset_index()
+
+                summary_df["Total"] = summary_df["Total"].round(2)
+                summary_df["Average"] = summary_df["Average"].round(2)
+                summary_df["Highest"] = summary_df["Highest"].round(2)
+
+                # Optional sort on summary
+                summary_sort = st.sidebar.selectbox(
+                    "Sort summary by",
+                    ["None", "Total", "Average", "Highest"],
+                    key="summary_sort_col"
+                )
+                if summary_sort != "None":
+                    summary_sort_order = st.sidebar.selectbox(
+                        "Summary sort order",
+                        ["Descending", "Ascending"],
+                        key="summary_sort_dir"
+                    )
+                    summary_df = summary_df.sort_values(
+                        summary_sort,
+                        ascending=(summary_sort_order == "Ascending")
+                    )
+
+                st.subheader("Summary Report")
+                st.dataframe(summary_df)
+
+                # ── Bar Chart ──────────────────────────────────
+                chart_metric = st.selectbox(
+                    "Chart metric",
+                    ["Total", "Average", "Highest"],
+                    key="chart_metric"
+                )
+                chart_data = summary_df.set_index(groupby_column)[[chart_metric]]
+                st.subheader(f"{chart_metric} by {groupby_column}")
+                st.bar_chart(chart_data)
+
+        progress_bar.progress(80)
 
         # ── Step 10: Optional Row Highlight ───────────────────
-        enable_highlight = st.sidebar.checkbox("Highlight a row")
+        enable_highlight = st.sidebar.checkbox("Highlight a row", key="highlight_toggle")
         if enable_highlight:
             highlight_row_number = st.sidebar.number_input(
-                "Row number to highlight (1 = first data row)",
+                "Row to highlight (1 = first row)",
                 min_value=1,
                 max_value=len(cleaned_df),
                 step=1,
@@ -163,18 +196,15 @@ if uploaded_files:
         workbook = load_workbook(excel_buffer)
         cleaned_sheet = workbook["Cleaned Data"]
 
-        # Bold headers on Cleaned Data sheet
         for cell in cleaned_sheet[1]:
             cell.font = Font(bold=True)
 
-        # Bold headers on Summary sheet
         if summary_df is not None:
             for cell in workbook["Summary"][1]:
                 cell.font = Font(bold=True)
 
-        # Apply row highlight if enabled
         if enable_highlight:
-            row_fill_color = highlight_hex_color[1:]
+            row_fill_color = highlight_hex_color.lstrip("#")
             row_fill = PatternFill(
                 start_color=row_fill_color,
                 end_color=row_fill_color,
@@ -183,17 +213,24 @@ if uploaded_files:
             for cell in cleaned_sheet[int(highlight_row_number) + 1]:
                 cell.fill = row_fill
 
-        # ── Step 13: Save Final Workbook to Memory ────────────
+        # ── Step 13: Save Final Workbook ──────────────────────
         final_output = io.BytesIO()
         workbook.save(final_output)
         progress_bar.progress(100)
         final_output.seek(0)
 
-    # ── Show Stats, Success Message, and Download Button ──────
-    st.metric("Duplicates Removed", duplicates_removed)
-    st.metric("Empty Cells Filled", empty_cell_count)
+    # ── Stats + Download ──────────────────────────────────────
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Rows Cleaned", len(cleaned_df))
+    col2.metric("Duplicates Removed", duplicates_removed)
+    col3.metric("Empty Cells Fixed", empty_cell_count)
+
     st.success("Your file is ready to download!")
-    st.download_button("Download Cleaned Excel", final_output.getvalue(), "cleaned.xlsx")
+    st.download_button(
+        "⬇️ Download Cleaned Excel",
+        final_output.getvalue(),
+        "cleaned.xlsx"
+    )
 
 else:
     st.write("Please upload a file to get started.")

@@ -127,7 +127,7 @@ df_raw = pd.concat(all_data, ignore_index=True)
 
 # ── PREVIEW FIRST (VERY IMPORTANT) ──────────────────────
 st.subheader("🔍 Raw Preview")
-st.dataframe(df_raw.head(20))
+st.dataframe(df_raw.head(20), hide_index=True)
 
 # ── PROCESS BUTTON ─────────────────────────────────────
 if st.button("🚀 Generate Report"):
@@ -165,7 +165,7 @@ if st.button("🚀 Generate Report"):
         prog.progress(60)
 
         st.subheader("📊 Clean Data")
-        st.dataframe(df)
+        st.dataframe(df, hide_index=True)
 
         summary_df = None
 
@@ -190,7 +190,7 @@ if st.button("🚀 Generate Report"):
                 ).reset_index()
 
                 st.subheader("📈 Summary")
-                st.dataframe(summary_df)
+                st.dataframe(summary_df, hide_index=True)
 
         prog.progress(80)
 

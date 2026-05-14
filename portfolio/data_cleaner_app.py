@@ -95,7 +95,7 @@ if uploaded_files:
 
         # ── Step 8: Display Cleaned Data ──────────────────────
         st.subheader("Cleaned Data")
-        st.dataframe(cleaned_df)
+        st.dataframe(cleaned_df, hide_index=True)
 
         duplicates_removed = row_count_before - len(cleaned_df)
         summary_df = None
@@ -154,7 +154,7 @@ if uploaded_files:
                     )
 
                 st.subheader("Summary Report")
-                st.dataframe(summary_df)
+                st.dataframe(summary_df, hide_index=True)
 
                 # ── Bar Chart ──────────────────────────────────
                 chart_metric = st.selectbox(

@@ -84,7 +84,7 @@ elif scraping_method == "Advanced (CSS Selector)":
 # ── Preview BEFORE processing ─────────────────────────────────
 if scraped_df is not None:
     st.subheader("🔍 Preview (Raw Data)")
-    st.dataframe(scraped_df.head(20))
+    st.dataframe(scraped_df.head(20), hide_index=True)
 
 # ── Processing ────────────────────────────────────────────────
 if scraped_df is not None and len(scraped_df) > 0:
@@ -128,7 +128,7 @@ if scraped_df is not None and len(scraped_df) > 0:
             progress.progress(60)
 
             st.subheader("📊 Clean Data")
-            st.dataframe(df)
+            st.dataframe(df, hide_index=True)
 
             summary_df = None
 
@@ -153,7 +153,7 @@ if scraped_df is not None and len(scraped_df) > 0:
                     ).reset_index()
 
                     st.subheader("📈 Summary")
-                    st.dataframe(summary_df)
+                    st.dataframe(summary_df, hide_index=True)
 
             progress.progress(80)
 

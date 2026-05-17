@@ -7,6 +7,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font
 import requests
 from bs4 import BeautifulSoup
+import plotly.express as px
 
 st.title("Multi-Page Web Data Extractor")
 st.write("Extract data from multiple pages and download a clean Excel report.")
@@ -258,9 +259,24 @@ if st.button("🚀 Generate Report"):
             st.subheader("📈 Summary Report")
             st.dataframe(summary_df, hide_index=True)
 
-            chart_data = summary_df.set_index(group_col)[[chart_metric]]
             st.subheader(f"{chart_metric} by {group_col}")
-            st.bar_chart(chart_data)
+            fig = px.bar(
+                summary_df,
+                x=group_col,
+                y=chart_metric,
+                labels={group_col: group_col, chart_metric: chart_metric},
+                color_discrete_sequence=["#4A90D9"]
+            )
+            fig.update_layout(
+                xaxis_title=group_col,
+                yaxis_title=chart_metric,
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(size=12),
+                margin=dict(t=30, b=120)
+            )
+            fig.update_xaxes(tickangle=-45)
+            st.plotly_chart(fig, use_container_width=True)
 
         elif mode == "Full Business Report":
             st.warning("⚠️ Need at least one text and one numeric column for a summary.")

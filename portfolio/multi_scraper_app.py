@@ -1,5 +1,6 @@
 import io
 import re
+import time
 import streamlit as st
 import pandas as pd
 from openpyxl import load_workbook
@@ -15,13 +16,18 @@ st.write("Extract data from multiple pages and download a clean Excel report.")
 st.sidebar.header("Settings")
 
 mode = st.sidebar.selectbox(
-    "Mode",
+    "Report Mode",
     ["Extract Data Only", "Full Business Report"]
 )
 
 scraping_method = st.sidebar.radio(
     "Scraping Mode",
-    ["Auto (Tables)", "Smart Extract (Books / Products)", "Advanced (CSS Selector)"]
+    [
+        "Auto (Tables)",
+        "Smart Extract (Books / Products)",
+        "Table Parser (Wikipedia / Any Table)",
+        "Advanced (CSS Selector)"
+    ]
 )
 
 total_pages = st.sidebar.number_input(
@@ -40,13 +46,17 @@ if not url_template:
     st.info("Enter a URL pattern to start.")
     st.stop()
 
-headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+}
 
 # ── Validate first page ──────────────────────────────────
 first_url = url_template.replace("{page}", "1")
 
 try:
-    first_response = requests.get(first_url, headers=headers, timeout=10)
+    first_response = requests.get(first_url, headers=headers, timeout=15)
     html = first_response.text
 except Exception:
     st.error("❌ Could not access the website.")
@@ -56,26 +66,54 @@ if first_response.status_code != 200:
     st.error(f"❌ Access denied ({first_response.status_code})")
     st.stop()
 
-# ── Table selection (Auto) ───────────────────────────────
+st.success(f"✅ Page loaded successfully ({len(html):,} characters)")
+
+# ── Mode-specific setup from first page ──────────────────
 selected_table_index = 0
+selector = None
+table_parser_index = 0
 
 if scraping_method == "Auto (Tables)":
     try:
         tables = pd.read_html(io.StringIO(html))
-        st.success(f"✅ Found {len(tables)} table(s)")
+        st.success(f"✅ Found {len(tables)} table(s) on page 1")
         selected_table_index = st.sidebar.selectbox(
-            "Select table",
+            "Select Table",
             range(len(tables)),
-            format_func=lambda x: f"Table {x+1}"
+            format_func=lambda x: f"Table {x+1} ({len(tables[x])} rows)"
         )
     except Exception:
-        st.warning("⚠️ No tables found. Try Smart Extract or Advanced mode.")
+        st.warning("⚠️ No tables found. Try Table Parser or Smart Extract.")
         st.stop()
 
-# ── Advanced mode input ──────────────────────────────────
-selector = None
-if scraping_method == "Advanced (CSS Selector)":
-    selector = st.text_input("CSS Selector (e.g. div.title)")
+elif scraping_method == "Table Parser (Wikipedia / Any Table)":
+    soup_first = BeautifulSoup(html, "html.parser")
+    all_tables = soup_first.find_all("table")
+
+    if not all_tables:
+        st.error("❌ No tables found on this page.")
+        st.stop()
+
+    st.info(f"Found {len(all_tables)} table(s) on page 1.")
+
+    table_labels = []
+    for i, t in enumerate(all_tables):
+        first_row = t.find("tr")
+        if first_row:
+            cells = [c.get_text(strip=True)[:20] for c in first_row.find_all(["th", "td"])[:4]]
+            label = f"Table {i+1}: {', '.join(cells)}"
+        else:
+            label = f"Table {i+1}"
+        table_labels.append(label)
+
+    table_parser_index = st.sidebar.selectbox(
+        "Select Table",
+        range(len(all_tables)),
+        format_func=lambda x: table_labels[x]
+    )
+
+elif scraping_method == "Advanced (CSS Selector)":
+    selector = st.text_input("CSS Selector (e.g. div.title, article.product)")
     if not selector:
         st.info("Enter a CSS selector.")
         st.stop()
@@ -92,66 +130,130 @@ for i in range(1, total_pages + 1):
     status.text(f"Scraping page {i}/{total_pages}...")
 
     try:
-        res = requests.get(url, headers=headers, timeout=10)
+        res = requests.get(url, headers=headers, timeout=15)
         page_html = res.text
 
+        if res.status_code != 200:
+            st.warning(f"⚠️ Page {i} returned status {res.status_code}")
+            continue
+
+        # ── Auto Tables ───────────────────────────────────
         if scraping_method == "Auto (Tables)":
             tables = pd.read_html(io.StringIO(page_html))
             all_data.append(tables[selected_table_index])
 
+        # ── Smart Extract ─────────────────────────────────
         elif scraping_method == "Smart Extract (Books / Products)":
             soup = BeautifulSoup(page_html, "html.parser")
             products = soup.select("article.product_pod")
 
-            if products:
-                rows = []
-                for p in products:
-                    title_tag = p.select_one("h3 a")
-                    title = title_tag["title"] if title_tag and title_tag.has_attr("title") else (title_tag.get_text(strip=True) if title_tag else "N/A")
-
-                    price_tag = p.select_one("p.price_color")
-                    price_text = price_tag.get_text(strip=True) if price_tag else "0"
-                    price = float(re.sub(r"[^\d.]", "", price_text)) if price_text else 0.0
-
-                    rating_tag = p.select_one("p.star-rating")
-                    rating_word = rating_tag["class"][1] if rating_tag and len(rating_tag["class"]) > 1 else "Zero"
-                    rating = rating_map.get(rating_word, 0)
-
-                    avail_tag = p.select_one("p.availability")
-                    availability = avail_tag.get_text(strip=True) if avail_tag else "N/A"
-
-                    rows.append({
-                        "Title": title,
-                        "Price (£)": price,
-                        "Rating": rating,
-                        "Availability": availability
-                    })
-
-                all_data.append(pd.DataFrame(rows))
-            else:
-                st.warning(f"⚠️ No products found on page {i}")
+            if not products:
+                st.warning(f"⚠️ No products on page {i}")
                 continue
 
-        else:
+            rows = []
+            for p in products:
+                title_tag = p.select_one("h3 a")
+                title = title_tag["title"] if title_tag and title_tag.has_attr("title") else (title_tag.get_text(strip=True) if title_tag else "N/A")
+
+                price_tag = p.select_one("p.price_color")
+                price_text = price_tag.get_text(strip=True) if price_tag else "0"
+                price = float(re.sub(r"[^\d.]", "", price_text)) if price_text else 0.0
+
+                rating_tag = p.select_one("p.star-rating")
+                rating_word = rating_tag["class"][1] if rating_tag and len(rating_tag["class"]) > 1 else "Zero"
+                rating = rating_map.get(rating_word, 0)
+
+                avail_tag = p.select_one("p.availability")
+                availability = avail_tag.get_text(strip=True) if avail_tag else "N/A"
+
+                rows.append({
+                    "Title": title,
+                    "Price (£)": price,
+                    "Rating": rating,
+                    "Availability": availability
+                })
+
+            all_data.append(pd.DataFrame(rows))
+
+        # ── Table Parser ──────────────────────────────────
+        elif scraping_method == "Table Parser (Wikipedia / Any Table)":
+            soup = BeautifulSoup(page_html, "html.parser")
+            page_tables = soup.find_all("table")
+
+            if not page_tables or table_parser_index >= len(page_tables):
+                st.warning(f"⚠️ Table not found on page {i}")
+                continue
+
+            selected_table = page_tables[table_parser_index]
+            rows = []
+            page_headers = []
+            all_rows = selected_table.find_all("tr")
+
+            for row in all_rows:
+                cells = row.find_all(["th", "td"])
+                cell_values = [c.get_text(strip=True) for c in cells]
+
+                if not cell_values:
+                    continue
+
+                if not page_headers:
+                    page_headers = cell_values
+                else:
+                    while len(cell_values) < len(page_headers):
+                        cell_values.append("")
+                    rows.append(cell_values[:len(page_headers)])
+
+            if rows and page_headers:
+                # Clean headers
+                clean_headers = []
+                seen = {}
+                for h in page_headers:
+                    h = h.strip() if h.strip() else "Column"
+                    if h in seen:
+                        seen[h] += 1
+                        h = f"{h}_{seen[h]}"
+                    else:
+                        seen[h] = 0
+                    clean_headers.append(h)
+
+                df_page = pd.DataFrame(rows, columns=clean_headers)
+
+                # Auto-convert numeric columns
+                for col in df_page.columns:
+                    try:
+                        cleaned = df_page[col].str.replace(r"\[.*?\]", "", regex=True)
+                        cleaned = cleaned.str.replace(r"[,$€£%†♠]", "", regex=True).str.strip()
+                        df_page[col] = pd.to_numeric(cleaned, errors="raise")
+                    except Exception:
+                        pass
+
+                all_data.append(df_page)
+
+        # ── Advanced CSS Selector ─────────────────────────
+        elif scraping_method == "Advanced (CSS Selector)":
             soup = BeautifulSoup(page_html, "html.parser")
             elements = soup.select(selector)
+
             if not elements:
-                st.warning(f"No data on page {i}")
+                st.warning(f"⚠️ No elements found on page {i}")
                 continue
+
             data = [el.get_text(strip=True) for el in elements]
             all_data.append(pd.DataFrame(data, columns=["Extracted Data"]))
 
-    except Exception:
-        st.warning(f"⚠️ Failed page {i}")
+    except Exception as e:
+        st.warning(f"⚠️ Failed page {i}: {str(e)[:60]}")
         continue
 
-    progress.progress(int((i / total_pages) * 50))
+    progress.progress(int((i / total_pages) * 60))
+    time.sleep(0.3)
 
 status.empty()
 
 # ── Combine ──────────────────────────────────────────────
 if not all_data:
-    st.error("❌ No data scraped.")
+    st.error("❌ No data scraped from any page.")
     st.stop()
 
 df_raw = pd.concat(all_data, ignore_index=True)
@@ -201,7 +303,7 @@ if st.button("🚀 Generate Report"):
             cat_cols = list(df.select_dtypes(exclude="number").columns)
 
             if not num_cols or not cat_cols:
-                st.warning("⚠️ Not enough data for summary. Need at least one text and one numeric column.")
+                st.warning("⚠️ Need at least one text column and one numeric column for a summary.")
             else:
                 group_col = st.sidebar.selectbox("Group by", cat_cols, key="group_col")
                 value_col = st.sidebar.selectbox("Analyze", num_cols, key="value_col")
@@ -249,7 +351,6 @@ if st.button("🚀 Generate Report"):
 
         prog.progress(80)
 
-        # ── Excel ─────────────────────────────────────────
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer) as writer:
             df.to_excel(writer, index=False, sheet_name="Scraped Data")
